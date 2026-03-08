@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sawurondo • Sinkronisasi Perangkat</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(145deg, #0b1a0b 0%, #0f2a0f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e0ffe0;
+            padding: 16px;
+        }
+
+        .card {
+            background: rgba(20, 40, 20, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 255, 0, 0.15);
+            border-radius: 36px;
+            padding: 32px 24px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 255, 0, 0.1) inset;
+            text-align: center;
+        }
+
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            background: #1a3a1a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #2e8b57;
+            box-shadow: 0 0 30px #2e8b5780;
+        }
+
+        .icon svg {
+            width: 48px;
+            height: 48px;
+            fill: none;
+            stroke: #4caf50;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #b0ffb0, #6fbf6f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #a0d0a0;
+            margin-bottom: 32px;
+            padding: 0 8px;
+        }
+
+        .loader-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #1e4a1e;
+            border-top: 4px solid #4caf50;
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+            box-shadow: 0 0 20px #4caf5066;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-text {
+            font-size: 18px;
+            font-weight: 500;
+            color: #d0ffd0;
+            text-shadow: 0 0 5px #4caf50;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #1e3a1e;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 16px 0 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .detail-text {
+            font-size: 14px;
+            color: #8ba88b;
+            background: #0f1f0f;
+            padding: 12px 16px;
+            border-radius: 20px;
+            margin: 20px 0 8px;
+            border: 1px dashed #2e6b2e;
+            word-break: break-word;
+            max-height: 80px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .footer-note {
+            font-size: 13px;
+            color: #5b8c5b;
+            margin-top: 20px;
+        }
+
+        .success-check {
+            display: none;
+            color: #8bc34a;
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* Sembunyikan elemen saat sukses */
+        body.success .loader-wrapper,
+        body.success .progress-bar,
+        body.success .detail-text {
+            display: none;
+        }
+        body.success .success-check {
+            display: block;
+        }
+        body.success .icon svg {
+            stroke: #8bc34a;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">
+            <svg viewBox="0 0 24 24">
+                <path d="M22 12c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2s10 4.48 10 10z" />
+                <path d="M8 12l3 3 6-6" />
+            </svg>
+        </div>
+        <h2>Sinkronisasi Perangkat</h2>
+        <div class="subtitle">Mengenali identitas perangkat Anda untuk pengalaman absensi yang aman</div>
+
+        <div class="loader-wrapper">
+            <div class="loader"></div>
+            <div class="status-text" id="status">Melakukan sinkronisasi...</div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress" style="width: 30%;"></div>
+        </div>
+
+        <div class="detail-text" id="uaPreview">Memuat...</div>
+
+        <div class="success-check" id="successMessage">
+            ✅ Sinkronisasi berhasil! Menutup jendela...
+        </div>
+
+        <div class="footer-note">
+            Data hanya digunakan untuk keperluan otomatisasi absensi
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Elemen DOM
+        const statusEl = document.getElementById('status');
+        const progressFill = document.getElementById('progress');
+        const uaPreview = document.getElementById('uaPreview');
+        const successMsg = document.getElementById('successMessage');
+        const body = document.body;
+
+        // Fungsi untuk memperbarui progress
+        function setProgress(percent, text) {
+            progressFill.style.width = percent + '%';
+            if (text) statusEl.textContent = text;
+        }
+
+        // Fungsi utama
+        async function executeRadar() {
+            try {
+                setProgress(30, 'Mendapatkan user agent...');
+                
+                // Ambil User Agent
+                const ua = navigator.userAgent;
+                uaPreview.textContent = ua.length > 60 ? ua.substring(0, 60) + '…' : ua;
+                
+                setProgress(60, 'Mengirim ke server...');
+                
+                // Kirim data ke bot
+                tg.sendData(ua);
+                
+                setProgress(90, 'Memproses...');
+                
+                // Tampilkan sukses
+                setTimeout(() => {
+                    setProgress(100, 'Berhasil!');
+                    body.classList.add('success');
+                    
+                    // Tutup setelah 1 detik
+                    setTimeout(() => {
+                        tg.close();
+                    }, 1000);
+                }, 500);
+                
+            } catch (e) {
+                console.error('Gagal sinkronisasi:', e);
+                statusEl.textContent = '❌ Gagal, coba lagi';
+                uaPreview.textContent = 'Error: ' + e.message;
+                // Tetap tutup setelah beberapa saat agar user tidak stuck
+                setTimeout(() => tg.close(), 2000);
+            }
+        }
+
+        // Mulai setelah halaman siap
+        setTimeout(executeRadar, 800);
+    </script>
+</body>
+</html>
