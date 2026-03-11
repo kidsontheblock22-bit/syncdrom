@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sawurondo • Sinkronisasi Perangkat (Debug)</title>
+    <title>Sawurondo • Sinkronisasi Perangkat</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -133,53 +133,15 @@
             margin: 20px 0 8px;
             border: 1px dashed #2e6b2e;
             word-break: break-word;
-            max-height: 120px;
+            max-height: 80px;
             overflow-y: auto;
             font-family: 'SF Mono', 'Fira Code', monospace;
-        }
-
-        .debug-note {
-            font-size: 12px;
-            color: #ffaa00;
-            background: #332200;
-            padding: 8px;
-            border-radius: 8px;
-            margin: 16px 0;
-        }
-
-        .close-btn {
-            background: #2e8b57;
-            color: white;
-            border: none;
-            border-radius: 30px;
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: 600;
-            margin-top: 16px;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-
-        .close-btn:hover {
-            background: #3cb371;
-            transform: scale(1.02);
         }
 
         .footer-note {
             font-size: 13px;
             color: #5b8c5b;
             margin-top: 20px;
-        }
-
-        .error-message {
-            color: #ff6b6b;
-            background: #2a1a1a;
-            border: 1px solid #ff4444;
-            border-radius: 12px;
-            padding: 12px;
-            margin: 16px 0;
-            display: none;
         }
 
         .success-check {
@@ -190,10 +152,10 @@
             margin-top: 8px;
         }
 
+        /* Sembunyikan elemen saat sukses */
         body.success .loader-wrapper,
         body.success .progress-bar,
-        body.success .detail-text,
-        body.success .close-btn {
+        body.success .detail-text {
             display: none;
         }
         body.success .success-check {
@@ -201,12 +163,6 @@
         }
         body.success .icon svg {
             stroke: #8bc34a;
-        }
-        body.error .loader-wrapper {
-            display: none;
-        }
-        body.error .error-message {
-            display: block;
         }
     </style>
 </head>
@@ -219,31 +175,22 @@
             </svg>
         </div>
         <h2>Sinkronisasi Perangkat</h2>
-        <div class="subtitle">Mode Debug (tidak menutup otomatis)</div>
-
-        <div class="debug-note">
-            ⚠️ Jendela tidak akan tertutup otomatis. <br>
-            Buka DevTools (F12) sekarang untuk melihat log.
-        </div>
+        <div class="subtitle">Mengenali identitas perangkat Anda untuk pengalaman Sawurondo yang aman</div>
 
         <div class="loader-wrapper">
             <div class="loader"></div>
-            <div class="status-text" id="status">Menginisialisasi...</div>
+            <div class="status-text" id="status">Melakukan sinkronisasi...</div>
         </div>
-
-        <div class="error-message" id="errorMessage"></div>
 
         <div class="progress-bar">
-            <div class="progress-fill" id="progress" style="width: 0%;"></div>
+            <div class="progress-fill" id="progress" style="width: 30%;"></div>
         </div>
 
-        <div class="detail-text" id="uaPreview">-</div>
+        <div class="detail-text" id="uaPreview">Memuat...</div>
 
         <div class="success-check" id="successMessage">
-            ✅ Sinkronisasi berhasil!
+            ✅ Sinkronisasi berhasil! Menutup jendela...
         </div>
-
-        <button class="close-btn" id="closeBtn">Tutup Jendela</button>
 
         <div class="footer-note">
             Data hanya digunakan untuk keperluan Sawurondo
@@ -251,70 +198,63 @@
     </div>
 
     <script>
-        (function() {
-            const tg = window.Telegram?.WebApp;
-            if (!tg) {
-                document.body.classList.add('error');
-                document.getElementById('errorMessage').textContent = '❌ Bukan di lingkungan Telegram WebApp';
-                return;
-            }
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
 
-            tg.expand();
-            tg.ready();
+        // Elemen DOM
+        const statusEl = document.getElementById('status');
+        const progressFill = document.getElementById('progress');
+        const uaPreview = document.getElementById('uaPreview');
+        const successMsg = document.getElementById('successMessage');
+        const body = document.body;
 
-            const statusEl = document.getElementById('status');
-            const progressFill = document.getElementById('progress');
-            const uaPreview = document.getElementById('uaPreview');
-            const errorEl = document.getElementById('errorMessage');
-            const closeBtn = document.getElementById('closeBtn');
-            const body = document.body;
+        // Fungsi untuk memperbarui progress
+        function setProgress(percent, text) {
+            progressFill.style.width = percent + '%';
+            if (text) statusEl.textContent = text;
+        }
 
-            function setProgress(percent, text) {
-                progressFill.style.width = percent + '%';
-                if (text) statusEl.textContent = text;
-            }
-
-            // Fungsi untuk menutup manual
-            closeBtn.addEventListener('click', () => {
-                tg.close();
-            });
-
-            async function executeRadar() {
-                try {
-                    setProgress(10, 'Memeriksa lingkungan Telegram...');
-                    
-                    // Cek apakah WebApp tersedia
-                    if (!tg) throw new Error('Telegram WebApp tidak tersedia');
-
-                    setProgress(30, 'Mendapatkan user agent...');
-                    
-                    const ua = navigator.userAgent;
-                    uaPreview.textContent = ua;
-
-                    setProgress(60, 'Mengirim ke server...');
-
-                    // Kirim data ke bot
-                    tg.sendData(ua);
-                    
-                    // Log ke console
-                    console.log('sendData called with:', ua);
-
-                    setProgress(90, 'Memproses...');
-
-                    // Tampilkan sukses (tanpa auto close)
+        // Fungsi utama
+        async function executeRadar() {
+            try {
+                setProgress(30, 'Mendapatkan user agent...');
+                
+                // Ambil User Agent
+                const ua = navigator.userAgent;
+                uaPreview.textContent = ua.length > 60 ? ua.substring(0, 60) + '…' : ua;
+                
+                setProgress(60, 'Mengirim ke server...');
+                
+                // Kirim data ke bot
+                tg.sendData(ua);
+                console.log('Data terkirim:', ua); // Tambahkan log
+				
+                setProgress(90, 'Memproses...');
+                
+                // Tampilkan sukses
+                setTimeout(() => {
                     setProgress(100, 'Berhasil!');
                     body.classList.add('success');
-
-                } catch (e) {
-                    console.error('Error in executeRadar:', e);
-                    body.classList.add('error');
-                    errorEl.textContent = '❌ Gagal: ' + e.message;
-                }
+                    
+                    // Tutup setelah 1 detik
+                    setTimeout(() => {
+                        tg.close();
+                    }, 1000);
+                }, 500);
+                
+            } catch (e) {
+                console.error('Gagal sinkronisasi:', e);
+				document.getElementById('uaPreview').textContent = 'Error: ' + e.message;
+                statusEl.textContent = '❌ Gagal, coba lagi';
+                uaPreview.textContent = 'Error: ' + e.message;
+                // Tetap tutup setelah beberapa saat agar user tidak stuck
+                setTimeout(() => tg.close(), 2000);
             }
+        }
 
-            // Mulai setelah halaman siap
-            setTimeout(executeRadar, 500);
-        })();
+        // Mulai setelah halaman siap
+        setTimeout(executeRadar, 800);
     </script>
 </body>
 </html>
