@@ -228,7 +228,8 @@
                 
                 // Kirim data ke bot
                 tg.sendData(ua);
-                
+                console.log('Data terkirim:', ua); // Tambahkan log
+				
                 setProgress(90, 'Memproses...');
                 
                 // Tampilkan sukses
@@ -244,6 +245,7 @@
                 
             } catch (e) {
                 console.error('Gagal sinkronisasi:', e);
+				document.getElementById('uaPreview').textContent = 'Error: ' + e.message;
                 statusEl.textContent = '❌ Gagal, coba lagi';
                 uaPreview.textContent = 'Error: ' + e.message;
                 // Tetap tutup setelah beberapa saat agar user tidak stuck
