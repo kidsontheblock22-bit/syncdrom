@@ -144,6 +144,16 @@
             margin-top: 20px;
         }
 
+        .error-message {
+            color: #ff6b6b;
+            background: #2a1a1a;
+            border: 1px solid #ff4444;
+            border-radius: 12px;
+            padding: 12px;
+            margin: 16px 0;
+            display: none;
+        }
+
         .success-check {
             display: none;
             color: #8bc34a;
@@ -152,7 +162,6 @@
             margin-top: 8px;
         }
 
-        /* Sembunyikan elemen saat sukses */
         body.success .loader-wrapper,
         body.success .progress-bar,
         body.success .detail-text {
@@ -163,6 +172,12 @@
         }
         body.success .icon svg {
             stroke: #8bc34a;
+        }
+        body.error .loader-wrapper {
+            display: none;
+        }
+        body.error .error-message {
+            display: block;
         }
     </style>
 </head>
@@ -182,6 +197,8 @@
             <div class="status-text" id="status">Melakukan sinkronisasi...</div>
         </div>
 
+        <div class="error-message" id="errorMessage"></div>
+
         <div class="progress-bar">
             <div class="progress-fill" id="progress" style="width: 30%;"></div>
         </div>
@@ -198,63 +215,68 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
-
-        // Elemen DOM
-        const statusEl = document.getElementById('status');
-        const progressFill = document.getElementById('progress');
-        const uaPreview = document.getElementById('uaPreview');
-        const successMsg = document.getElementById('successMessage');
-        const body = document.body;
-
-        // Fungsi untuk memperbarui progress
-        function setProgress(percent, text) {
-            progressFill.style.width = percent + '%';
-            if (text) statusEl.textContent = text;
-        }
-
-        // Fungsi utama
-        async function executeRadar() {
-            try {
-                setProgress(30, 'Mendapatkan user agent...');
-                
-                // Ambil User Agent
-                const ua = navigator.userAgent;
-                uaPreview.textContent = ua.length > 60 ? ua.substring(0, 60) + '…' : ua;
-                
-                setProgress(60, 'Mengirim ke server...');
-                
-                // Kirim data ke bot
-                tg.sendData(ua);
-                console.log('Data terkirim:', ua); // Tambahkan log
-				
-                setProgress(90, 'Memproses...');
-                
-                // Tampilkan sukses
-                setTimeout(() => {
-                    setProgress(100, 'Berhasil!');
-                    body.classList.add('success');
-                    
-                    // Tutup setelah 1 detik
-                    setTimeout(() => {
-                        tg.close();
-                    }, 1000);
-                }, 500);
-                
-            } catch (e) {
-                console.error('Gagal sinkronisasi:', e);
-				document.getElementById('uaPreview').textContent = 'Error: ' + e.message;
-                statusEl.textContent = '❌ Gagal, coba lagi';
-                uaPreview.textContent = 'Error: ' + e.message;
-                // Tetap tutup setelah beberapa saat agar user tidak stuck
-                setTimeout(() => tg.close(), 2000);
+        (function() {
+            const tg = window.Telegram?.WebApp;
+            if (!tg) {
+                document.body.classList.add('error');
+                document.getElementById('errorMessage').textContent = '❌ Bukan di lingkungan Telegram WebApp';
+                return;
             }
-        }
 
-        // Mulai setelah halaman siap
-        setTimeout(executeRadar, 800);
+            tg.expand();
+            tg.ready();
+
+            const statusEl = document.getElementById('status');
+            const progressFill = document.getElementById('progress');
+            const uaPreview = document.getElementById('uaPreview');
+            const errorEl = document.getElementById('errorMessage');
+            const body = document.body;
+
+            function setProgress(percent, text) {
+                progressFill.style.width = percent + '%';
+                if (text) statusEl.textContent = text;
+            }
+
+            async function executeRadar() {
+                try {
+                    setProgress(30, 'Mendapatkan user agent...');
+                    
+                    const ua = navigator.userAgent;
+                    uaPreview.textContent = ua;
+
+                    setProgress(60, 'Mengirim ke server...');
+
+                    // Kirim data ke bot
+                    tg.sendData(ua);
+                    
+                    // Log untuk debugging (tidak akan muncul di console user, tapi kita bisa lihat di devtools)
+                    console.log('sendData called with:', ua);
+
+                    setProgress(90, 'Memproses...');
+
+                    // Tampilkan sukses
+                    setTimeout(() => {
+                        setProgress(100, 'Berhasil!');
+                        body.classList.add('success');
+                        
+                        // Tutup setelah 1,5 detik
+                        setTimeout(() => {
+                            tg.close();
+                        }, 1500);
+                    }, 500);
+
+                } catch (e) {
+                    console.error('Error in executeRadar:', e);
+                    body.classList.add('error');
+                    errorEl.textContent = '❌ Gagal: ' + e.message;
+                    // Tetap tutup setelah beberapa detik
+                    setTimeout(() => tg.close(), 3000);
+                }
+            }
+
+            // Mulai setelah halaman siap
+            setTimeout(executeRadar, 500);
+        })();
     </script>
 </body>
 </html>
