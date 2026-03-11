@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sawurondo • Sinkronisasi Perangkat</title>
+    <title>Sawurondo • Sinkronisasi Perangkat (Debug)</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -133,9 +133,37 @@
             margin: 20px 0 8px;
             border: 1px dashed #2e6b2e;
             word-break: break-word;
-            max-height: 80px;
+            max-height: 120px;
             overflow-y: auto;
             font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .debug-note {
+            font-size: 12px;
+            color: #ffaa00;
+            background: #332200;
+            padding: 8px;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+
+        .close-btn {
+            background: #2e8b57;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .close-btn:hover {
+            background: #3cb371;
+            transform: scale(1.02);
         }
 
         .footer-note {
@@ -164,7 +192,8 @@
 
         body.success .loader-wrapper,
         body.success .progress-bar,
-        body.success .detail-text {
+        body.success .detail-text,
+        body.success .close-btn {
             display: none;
         }
         body.success .success-check {
@@ -190,24 +219,31 @@
             </svg>
         </div>
         <h2>Sinkronisasi Perangkat</h2>
-        <div class="subtitle">Mengenali identitas perangkat Anda untuk pengalaman Sawurondo yang aman</div>
+        <div class="subtitle">Mode Debug (tidak menutup otomatis)</div>
+
+        <div class="debug-note">
+            ⚠️ Jendela tidak akan tertutup otomatis. <br>
+            Buka DevTools (F12) sekarang untuk melihat log.
+        </div>
 
         <div class="loader-wrapper">
             <div class="loader"></div>
-            <div class="status-text" id="status">Melakukan sinkronisasi...</div>
+            <div class="status-text" id="status">Menginisialisasi...</div>
         </div>
 
         <div class="error-message" id="errorMessage"></div>
 
         <div class="progress-bar">
-            <div class="progress-fill" id="progress" style="width: 30%;"></div>
+            <div class="progress-fill" id="progress" style="width: 0%;"></div>
         </div>
 
-        <div class="detail-text" id="uaPreview">Memuat...</div>
+        <div class="detail-text" id="uaPreview">-</div>
 
         <div class="success-check" id="successMessage">
-            ✅ Sinkronisasi berhasil! Menutup jendela...
+            ✅ Sinkronisasi berhasil!
         </div>
+
+        <button class="close-btn" id="closeBtn">Tutup Jendela</button>
 
         <div class="footer-note">
             Data hanya digunakan untuk keperluan Sawurondo
@@ -230,6 +266,7 @@
             const progressFill = document.getElementById('progress');
             const uaPreview = document.getElementById('uaPreview');
             const errorEl = document.getElementById('errorMessage');
+            const closeBtn = document.getElementById('closeBtn');
             const body = document.body;
 
             function setProgress(percent, text) {
@@ -237,8 +274,18 @@
                 if (text) statusEl.textContent = text;
             }
 
+            // Fungsi untuk menutup manual
+            closeBtn.addEventListener('click', () => {
+                tg.close();
+            });
+
             async function executeRadar() {
                 try {
+                    setProgress(10, 'Memeriksa lingkungan Telegram...');
+                    
+                    // Cek apakah WebApp tersedia
+                    if (!tg) throw new Error('Telegram WebApp tidak tersedia');
+
                     setProgress(30, 'Mendapatkan user agent...');
                     
                     const ua = navigator.userAgent;
@@ -249,28 +296,19 @@
                     // Kirim data ke bot
                     tg.sendData(ua);
                     
-                    // Log untuk debugging (tidak akan muncul di console user, tapi kita bisa lihat di devtools)
+                    // Log ke console
                     console.log('sendData called with:', ua);
 
                     setProgress(90, 'Memproses...');
 
-                    // Tampilkan sukses
-                    setTimeout(() => {
-                        setProgress(100, 'Berhasil!');
-                        body.classList.add('success');
-                        
-                        // Tutup setelah 1,5 detik
-                        setTimeout(() => {
-                            tg.close();
-                        }, 1500);
-                    }, 500);
+                    // Tampilkan sukses (tanpa auto close)
+                    setProgress(100, 'Berhasil!');
+                    body.classList.add('success');
 
                 } catch (e) {
                     console.error('Error in executeRadar:', e);
                     body.classList.add('error');
                     errorEl.textContent = '❌ Gagal: ' + e.message;
-                    // Tetap tutup setelah beberapa detik
-                    setTimeout(() => tg.close(), 3000);
                 }
             }
 
